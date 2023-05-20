@@ -25,6 +25,7 @@ class MQTT:
 
         ip = self.wlan.ifconfig()[0]
         print(f"Connected on {ip}")
+        self.blink()
         return ip
 
     def mqtt_connect(

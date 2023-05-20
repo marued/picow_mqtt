@@ -5,6 +5,7 @@ from cofee_table.button import Button
 from cofee_table.heptic_motor import HepticMotor
 from cofee_table.mqtt import MQTT
 from cofee_table.samsung_ir_transmitter import SamsungIRTransmitter
+import cofee_table.config as config
 
 
 class TableModule:
@@ -14,8 +15,14 @@ class TableModule:
         self.mqtt_server = MQTT()
 
     def connect(self):
-        self.mqtt_server.connect()
-        self.mqtt_server.mqtt_connect()
+        self.mqtt_server.connect(config.ssid, config.password)
+        self.mqtt_server.mqtt_connect(
+            config.mqtt_server,
+            config.mqtt_port,
+            config.client_username,
+            config.client_psw,
+            config.client_id,
+        )
 
     def register_callbacks(self):
         self.button_1.start_listening(
@@ -24,7 +31,8 @@ class TableModule:
             self.long_click_callback,
         )
         self.mqtt_server.register_callback(
-            b"power", lambda topic, msg: self.samsung_ir_transmitter.activate("volume_up")
+            b"power",
+            lambda topic, msg: self.samsung_ir_transmitter.activate("volume_up"),
         )
         self.mqtt_server.register_callback(
             b"source", lambda topic, msg: self.samsung_ir_transmitter.activate("source")
@@ -59,4 +67,3 @@ if __name__ == "__main__":
     # Need to run subrutine so it can yield to
     # others and not exit the main thread
     uasyncio.run(start())
-    
