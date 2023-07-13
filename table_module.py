@@ -34,29 +34,30 @@ class TableModule:
             )
             index += 1
 
+        # Register MQTT callbacks for TV commands
         self.mqtt_server.register_callback(
-            b"power",
-            lambda topic, msg: self.samsung_ir_transmitter.activate("power"),
+            b"tv_power",
+            lambda topic, msg: self.samsung_ir_transmitter.activate("tv_power"),
         )
         self.mqtt_server.register_callback(
-            b"source", lambda topic, msg: self.samsung_ir_transmitter.activate("source")
+            b"tv_source",
+            lambda topic, msg: self.samsung_ir_transmitter.activate("tv_source"),
         )
         self.mqtt_server.register_callback(
-            b"volume_up",
-            lambda topic, msg: self.samsung_ir_transmitter.activate("volume_up"),
+            b"tv_volume_up",
+            lambda topic, msg: self.samsung_ir_transmitter.activate("tv_volume_up"),
         )
         self.mqtt_server.register_callback(
-            b"volume_down",
-            lambda topic, msg: self.samsung_ir_transmitter.activate("volume_down"),
+            b"tv_volume_down",
+            lambda topic, msg: self.samsung_ir_transmitter.activate("tv_volume_down"),
         )
 
     def single_click_callback(self, button_metadata: dict) -> function:
         def execute(pin: machine.Pin):
             print("single click")
             self.mqtt_server.publish(
-                topic_msg="single click {0}".format(button_metadata["pin_nb"]).encode(
-                    "utf-8"
-                )
+                topic_msg=b"single click",
+                topic_pub=self._get_topic(button_metadata),
             )
             if "single_click_action" in button_metadata:
                 self.samsung_ir_transmitter.activate(
@@ -69,9 +70,8 @@ class TableModule:
         def execute(pin: machine.Pin):
             print("double click")
             self.mqtt_server.publish(
-                topic_msg="double click {0}".format(button_metadata["pin_nb"]).encode(
-                    "utf-8"
-                )
+                topic_msg=b"double click",
+                topic_pub=self._get_topic(button_metadata),
             )
             if "double_click_action" in button_metadata:
                 self.samsung_ir_transmitter.activate(
@@ -85,9 +85,8 @@ class TableModule:
         def execute(pin: machine.Pin):
             print("long click")
             self.mqtt_server.publish(
-                topic_msg="long click {0}".format(button_metadata["pin_nb"]).encode(
-                    "utf-8"
-                )
+                topic_msg=b"long click",
+                topic_pub=self._get_topic(button_metadata),
             )
             if "long_click_action" in button_metadata:
                 self.samsung_ir_transmitter.activate(
@@ -96,3 +95,8 @@ class TableModule:
 
         return execute
         # self.samsung_ir_transmitter.activate("source")
+
+    def _get_topic(self, button_metadata: dict):
+        return "coffee_table/button/{0}".format(button_metadata["pin_nb"]).encode(
+            "utf-8"
+        )

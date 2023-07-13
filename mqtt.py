@@ -63,14 +63,14 @@ class MQTT:
             callback=lambda t: self.board_led.value(0),
         )
 
-    def publish(self, topic_pub=b"homeassistant/test", topic_msg=b"Button pressed!"):
+    def publish(self, topic_pub=b"coffee_table", topic_msg=b"Button pressed!"):
         self.client.publish(topic_pub, topic_msg)
 
         # Blink the board LED to indicate a publish
         self.blink()
         print("Publishing to MQTT Broker {0}: {1}".format(topic_pub, topic_msg))
 
-    def start_msg_check(self, topic_sub=b"homeassistant/test"):
+    def start_msg_check(self, topic_sub=b"coffee_table/post"):
         self.client.subscribe(topic_sub)
         print("Subscribed to {0} topic".format(topic_sub))
         uasyncio.create_task(self._check_msg_loop())
@@ -83,14 +83,19 @@ class MQTT:
             except OSError as e:
                 print("Failed to check MQTT message: {0}".format(e))
                 self.reset_and_reconnect()
-            await uasyncio.sleep(0.1)
+            await uasyncio.sleep_ms(100)
 
     def _on_message_received(self, topic, message):
-        print("Topic: {0}, Message: {1}".format(topic, message))
-        # Blink the board LED to indicate a message
-        self.blink()
+        try:
+            print("Topic: {0}, Message: {1}".format(topic, message))
+            # Blink the board LED to indicate a message
+            self.blink()
 
-        for message_identifyer, callback in self._callbacks:
-            print("message_identifyer: ", message_identifyer, "message: ", message)
-            if message_identifyer == message:
-                callback(topic, message)
+            # Execute the callback associated to the message
+            for message_identifyer, callback in self._callbacks:
+                print("message_identifyer: ", message_identifyer, "message: ", message)
+                if message_identifyer == message:
+                    callback(topic, message)
+        except Exception as e:
+            print("Error on message received: {0}".format(e))
+            self.reset_and_reconnect()
