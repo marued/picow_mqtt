@@ -1,8 +1,8 @@
 import machine
-from cofee_table.button import Button
-from cofee_table.mqtt import MQTT
-from cofee_table.samsung_ir_transmitter import SamsungIRTransmitter
-import cofee_table.config as config
+from coffee_table.button import Button
+from coffee_table.mqtt import MQTT
+from coffee_table.samsung_ir_transmitter import SamsungIRTransmitter
+import coffee_table.config as config
 
 
 class TableModule:

@@ -1,5 +1,5 @@
 from machine import Pin, Timer
-from cofee_table.ir_tx.nec import NEC
+from coffee_table.ir_tx.nec import NEC
 
 
 # Class that activates the IR diode linked to the GPIO pin

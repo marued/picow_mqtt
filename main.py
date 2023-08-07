@@ -1,7 +1,7 @@
 import time
 
 time.sleep(1)  # somehow it's recomended by mqtt_as...?
-from cofee_table.table_module import TableModule
+from coffee_table.table_module import TableModule
 import uasyncio
 import machine
 import gc
