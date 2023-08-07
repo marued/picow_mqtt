@@ -7,30 +7,34 @@ import cofee_table.config as config
 
 class TableModule:
     def __init__(self, buttons: list, ir_transmitter_pin_nb: int = 15):
-        self.buttons = []
+        self.buttons: list[Button] = []
         self.buttons_metadata = buttons
         for button in buttons:
             self.buttons.append(Button(button["pin_nb"], button["heptic_pin_nb"]))
         self.samsung_ir_transmitter = SamsungIRTransmitter(ir_transmitter_pin_nb)
         self.mqtt_server = MQTT()
+        self.async_tasks = set()
 
-    def connect(self):
-        self.mqtt_server.connect(config.ssid, config.password)
-        self.mqtt_server.mqtt_connect(
+    async def connect(self):
+        await self.mqtt_server.mqtt_connect(
             config.mqtt_server,
             config.mqtt_port,
             config.client_username,
             config.client_psw,
             config.client_id,
+            config.ssid,
+            config.password,
         )
 
     def register_callbacks(self):
         index = 0
         for button in self.buttons:
-            button.start_listening(
-                self.single_click_callback(self.buttons_metadata[index]),
-                self.double_click_callback(self.buttons_metadata[index]),
-                self.long_click_callback(self.buttons_metadata[index]),
+            self.async_tasks.add(
+                button.start_listening(
+                    self.single_click_callback(self.buttons_metadata[index]),
+                    self.double_click_callback(self.buttons_metadata[index]),
+                    self.long_click_callback(self.buttons_metadata[index]),
+                )
             )
             index += 1
 
@@ -53,9 +57,9 @@ class TableModule:
         )
 
     def single_click_callback(self, button_metadata: dict) -> function:
-        def execute(pin: machine.Pin):
+        async def execute(pin: machine.Pin):
             print("single click")
-            self.mqtt_server.publish(
+            await self.mqtt_server.publish(
                 topic_msg=b"single click",
                 topic_pub=self._get_topic(button_metadata),
             )
@@ -67,9 +71,9 @@ class TableModule:
         return execute
 
     def double_click_callback(self, button_metadata: dict):
-        def execute(pin: machine.Pin):
+        async def execute(pin: machine.Pin):
             print("double click")
-            self.mqtt_server.publish(
+            await self.mqtt_server.publish(
                 topic_msg=b"double click",
                 topic_pub=self._get_topic(button_metadata),
             )
@@ -79,12 +83,11 @@ class TableModule:
                 )
 
         return execute
-        # self.samsung_ir_transmitter.activate("power")
 
     def long_click_callback(self, button_metadata: dict):
-        def execute(pin: machine.Pin):
+        async def execute(pin: machine.Pin):
             print("long click")
-            self.mqtt_server.publish(
+            await self.mqtt_server.publish(
                 topic_msg=b"long click",
                 topic_pub=self._get_topic(button_metadata),
             )
@@ -94,7 +97,6 @@ class TableModule:
                 )
 
         return execute
-        # self.samsung_ir_transmitter.activate("source")
 
     def _get_topic(self, button_metadata: dict):
         return "coffee_table/button/{0}".format(button_metadata["pin_nb"]).encode(

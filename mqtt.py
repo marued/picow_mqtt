@@ -1,51 +1,38 @@
-import uasyncio
-import network
 import time
 import machine
-from umqtt.simple import MQTTClient
+from mqtt_as.mqtt_as import MQTTClient, config
 
 
 class MQTT:
     def __init__(self):
         self.board_led = machine.Pin("LED", mode=machine.Pin.OUT)
         self._callbacks = []
+        self.foo = {"foo": "bar"}
 
     def register_callback(self, message_identifier, callback):
         self._callbacks.append((message_identifier, callback))
 
-    def connect(self, ssid, password):
-        # Connect to WLAN
-        self.wlan = network.WLAN(network.STA_IF)
-        self.wlan.active(True)
-        self.wlan.connect(ssid, password)
-
-        while self.wlan.isconnected() == False:
-            print("Waiting for connection...")
-            time.sleep(1)
-
-        ip = self.wlan.ifconfig()[0]
-        print(f"Connected on {ip}")
-        self.blink()
-        return ip
-
-    def mqtt_connect(
+    async def mqtt_connect(
         self,
         mqtt_server,
         mqtt_port,
         client_username,
         client_psw,
         client_id,
+        ssid,
+        password,
     ):
-        self.client = MQTTClient(
-            client_id,
-            mqtt_server,
-            port=mqtt_port,
-            user=client_username,
-            password=client_psw,
-            keepalive=3600,
-        )
-        self.client.set_callback(self._on_message_received)
-        self.client.connect()
+        config["client_id"] = client_id
+        config["server"] = mqtt_server
+        config["port"] = mqtt_port
+        config["user"] = client_username
+        config["password"] = client_psw
+        config["subs_cb"] = self._on_message_received
+        config["connect_coro"] = self.start_msg_check
+        config["ssid"] = ssid
+        config["wifi_pw"] = password
+        self.client = MQTTClient(config)
+        await self.client.connect()
         print("Connected to %s MQTT Broker" % (mqtt_server))
         return self.client
 
@@ -63,31 +50,26 @@ class MQTT:
             callback=lambda t: self.board_led.value(0),
         )
 
-    def publish(self, topic_pub=b"coffee_table", topic_msg=b"Button pressed!"):
-        self.client.publish(topic_pub, topic_msg)
+    async def publish(self, topic_pub=b"coffee_table", topic_msg=b"Button pressed!"):
+        await self.client.publish(topic_pub, topic_msg)
 
         # Blink the board LED to indicate a publish
         self.blink()
         print("Publishing to MQTT Broker {0}: {1}".format(topic_pub, topic_msg))
 
-    def start_msg_check(self, topic_sub=b"coffee_table/post"):
-        self.client.subscribe(topic_sub)
+    async def start_msg_check(self, client, topic_sub="coffee_table/post"):
+        print("Is Connected: {}".format(client.isconnected()))
+        print(topic_sub)
+        await client.subscribe(topic_sub)
         print("Subscribed to {0} topic".format(topic_sub))
-        uasyncio.create_task(self._check_msg_loop())
 
-    async def _check_msg_loop(self):
-        print("mqtt start check msg loop")
-        while True:
-            try:
-                self.client.check_msg()
-            except OSError as e:
-                print("Failed to check MQTT message: {0}".format(e))
-                self.reset_and_reconnect()
-            await uasyncio.sleep_ms(100)
-
-    def _on_message_received(self, topic, message):
+    def _on_message_received(self, topic, message, retained):
         try:
-            print("Topic: {0}, Message: {1}".format(topic, message))
+            print(
+                "Topic: {0}, Message: {1}, Retained: {2}".format(
+                    topic, message, retained
+                )
+            )
             # Blink the board LED to indicate a message
             self.blink()
 
