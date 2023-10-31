@@ -99,8 +99,9 @@ class IR:
         if ESP32:
             self._rmt.write_pulses(tuple(self._mva[0 : self.aptr]))
         elif RP2:
-            self.append(STOP)
-            self._rmt.send(self._arr)
+            if not self._rmt.busy(): # If called while busy, it causes dead-lock
+                self.append(STOP)
+                self._rmt.send(self._arr)
         else:
             self.append(STOP)
             self.aptr = 0  # Reset pointer

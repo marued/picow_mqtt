@@ -7,7 +7,6 @@ class MQTT:
     def __init__(self):
         self.board_led = machine.Pin("LED", mode=machine.Pin.OUT)
         self._callbacks = []
-        self.foo = {"foo": "bar"}
 
     def register_callback(self, message_identifier, callback):
         self._callbacks.append((message_identifier, callback))
