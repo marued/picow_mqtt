@@ -16,7 +16,7 @@ class SamsungIRTransmitter:
     }
 
     def __init__(self, pinNumber: int) -> None:
-        self.transmitter = NEC(Pin(pinNumber))
+        self.transmitter = NEC(Pin(pinNumber, pull=Pin.PULL_DOWN))
         self.transmitter.samsung = True
         self.timer = Timer()
 
